@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "_widgets.html" import ring, stamps %}
+{% block content %}
+<h1>Progress {{ year }}</h1>
+<p class="muted">Points reward completeness and review. They never depend on the size of a deduction or on how many home-office days you log.</p>
+
+<section class="card readiness-full">
+  <div class="readiness">
+    {{ ring(prog.score, 150) }}
+    <div class="readiness-body">
+      <h2>Readiness</h2>
+      {% for c in prog.components %}
+      <div class="comp">
+        <div class="comp-top"><span>{{ c.label }}</span><b>{{ c.points }}<small class="muted"> / {{ c.weight }}</small></b></div>
+        <div class="meter"><div style="width: {{ (c.score * 100)|round|int }}%"></div></div>
+        <div class="small muted">{{ c.hint }}</div>
+      </div>
+      {% endfor %}
+      {% if prog.next_step %}<a class="button nextstep" href="{{ prog.next_step.href }}">Next: {{ prog.next_step.action }} ›</a>
+      {% else %}<p class="ok-text">All set. Enter the figures in Mein ELSTER.</p>{% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Work-day streak</h2>
+  {% for st in prog.streaks %}
+  {% set now = year == today.year %}
+  <div class="streak">
+    <div class="streak-main"><span class="{{ 'flame' if st.current }}">{{ '🔥' if st.current else '💤' }}</span>
+      <b>{{ st.current if now else st.longest }}</b> <span class="muted">weekdays {{ 'in a row' if now else 'best streak' }}</span></div>
+    <div class="small muted">{{ st.name }} · best {{ st.longest }} · {{ st.logged }} of {{ st.elapsed }} past weekdays logged</div>
+    {% if st.missing %}
+    <div class="small gaps">Gaps:
+      {% for d in st.missing %}<a href="/workdays?year={{ year }}&amp;m={{ d.month }}&amp;person={{ st.person_id }}">{{ d.strftime('%a %d.%m.') }}</a>{% endfor %}
+      {% if st.missing_total > st.missing|length %}<span class="muted">+ {{ st.missing_total - st.missing|length }} earlier</span>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <p class="small muted">Weekends never break a streak. Holidays and leave count as logged when you mark them "Away".</p>
+</section>
+
+<section class="card">
+  <div class="month-head"><h2>Month stamps</h2><span class="muted small">{{ prog.closed_months }} / 12 closed</span></div>
+  {{ stamps(prog.months, year) }}
+  <p class="small muted">A month closes when every weekday is logged for everyone on the return and no open document is dated in it. Tap a stamp to fix what is missing.</p>
+</section>
+
+<section class="card">
+  <div class="month-head"><h2>Achievements</h2><span class="muted small">{{ prog.earned|length }} / {{ prog.achievements|length }}</span></div>
+  <div class="awards">
+    {% for a in prog.achievements %}
+    <div class="award {{ 'earned' if a.earned else 'locked' }}">
+      <div class="icon" aria-hidden="true">{{ a.icon }}</div>
+      <b>{{ a.title }}</b>
+      <span class="small muted">{{ a.desc }}</span>
+      {% if a.earned %}<span class="small ok-text">Unlocked</span>{% elif a.progress %}<span class="small">{{ a.progress }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+<script type="application/json" id="earned-data">{{ earned|tojson }}</script>
+{% endblock %}

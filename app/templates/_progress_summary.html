@@ -1,0 +1,23 @@
+{% from "_widgets.html" import ring, stamps %}
+<section class="card" id="progress-summary" data-live>
+  <div class="month-head"><h2>Progress</h2><a class="more" href="/progress?year={{ year }}">All&nbsp;›</a></div>
+  <div class="readiness">
+    {{ ring(prog.score, 104) }}
+    <div class="readiness-body">
+      <div><b>Readiness</b> <span class="muted small">{{ prog.score }} of 100</span></div>
+      {% if prog.next_step %}
+      <a class="button nextstep" href="{{ prog.next_step.href }}">Next: {{ prog.next_step.action }} ›</a>
+      {% else %}
+      <span class="ok-text">All set. Enter the figures in Mein ELSTER.</span>
+      {% endif %}
+      <div class="small muted streakline">
+        {% for st in prog.streaks %}
+        {% set n = st.current if year == today.year else st.longest %}
+        <span><span class="{{ 'flame' if n }}">{{ '🔥' if n else '💤' }}</span> {{ st.name }}: <b>{{ n }}</b> weekday{{ 's' if n != 1 }} {{ 'in a row' if year == today.year else 'best' }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {{ stamps(prog.months, year) }}
+  <p class="small muted">{{ prog.earned|length }} of {{ prog.achievements|length }} achievements · <a href="/progress?year={{ year }}">see all</a></p>
+</section>

@@ -1,0 +1,44 @@
+{# Reusable pieces for the progress/animation layer. #}
+
+{% macro ring(score, size=120) -%}
+{% set c = 326.73 %}
+<div class="ring {{ 'done' if score >= 100 }}" style="width: {{ size }}px; height: {{ size }}px;" role="img" aria-label="Readiness {{ score }} percent">
+  <svg viewBox="0 0 120 120" aria-hidden="true">
+    <circle class="ring-track" cx="60" cy="60" r="52" fill="none" stroke-width="10"/>
+    <circle class="ring-value" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-dasharray="{{ c }}" stroke-dashoffset="{{ (c * (1 - score / 100))|round(2) }}"/>
+  </svg>
+  <div class="num"><span>{{ score }}<small>%</small></span></div>
+</div>
+{%- endmacro %}
+
+{% macro stamps(months, year) -%}
+<div class="stamps">
+  {% for m in months %}
+  <a class="stamp {{ m.state }}" style="--i: {{ loop.index0 }}" href="/workdays?year={{ year }}&amp;m={{ m.month }}"
+     title="{{ m.name }}: {% if m.state == 'closed' %}closed{% elif m.state == 'future' %}not started yet{% else %}{{ m.logged }} of {{ m.expected }} weekdays logged{% if m.open_docs %}, {{ m.open_docs }} open document(s){% endif %}{% endif %}">
+    <b>{{ m.name[:3] }}</b>
+    <span>{% if m.state == 'closed' %}✓{% elif m.state == 'partial' %}{{ (m.expected - m.logged) + m.open_docs }}{% elif m.state == 'current' %}•{% endif %}</span>
+  </a>
+  {% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro worker_svg() -%}
+<div class="worker" aria-hidden="true">
+  <div class="zzz">z<small>z</small></div>
+  <div class="plug">🔌</div>
+  <div class="body">
+    <svg viewBox="0 0 48 56">
+      <line x1="24" y1="4" x2="24" y2="10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <circle class="antenna" cx="24" cy="4" r="3" fill="var(--accent)"/>
+      <rect x="9" y="10" width="30" height="22" rx="9" fill="var(--card)" stroke="currentColor" stroke-width="2.5"/>
+      <circle class="eye" cx="18" cy="21" r="3" fill="currentColor"/>
+      <circle class="eye" cx="30" cy="21" r="3" fill="currentColor"/>
+      <rect x="13" y="34" width="22" height="14" rx="5" fill="var(--accent)"/>
+      <rect class="leg l" x="15" y="48" width="6" height="7" rx="3" fill="currentColor"/>
+      <rect class="leg r" x="27" y="48" width="6" height="7" rx="3" fill="currentColor"/>
+    </svg>
+  </div>
+  <i class="carry"></i>
+</div>
+{%- endmacro %}

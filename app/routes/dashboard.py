@@ -9,11 +9,12 @@ from sqlalchemy.orm import Session
 
 from worker.calculate import compute_year
 
-from .. import config
+from .. import config, storage
 from ..auth import require_auth
 from ..db import get_db
 from ..models import Document, WorkDay
-from ..web import get_year, render
+from ..progress import STATIONS, compute_progress, earned_payload, status_payload
+from ..web import get_year, render, worker_state
 
 router = APIRouter(dependencies=[Depends(require_auth)])
 
@@ -26,9 +27,12 @@ def dashboard(request: Request, s: Session = Depends(get_db)):
     today = date.today()
     today_kinds = {wd.person_id: wd.kind for wd in s.scalars(select(WorkDay).where(WorkDay.day == today))}
     pending = sm.counts.get("pending", 0) + sm.counts.get("processing", 0)
+    prog = compute_progress(s, year, sm)
+    pipeline = status_payload(s, year, sm, prog, worker_state(), storage.nas_status()[0])
     return render(request, "dashboard.html", s, year, sm=sm, recent=recent, categories=config.categories(),
                   today=today, today_kinds=today_kinds, pending=pending,
-                  needs_review=sm.counts.get("needs_review", 0) + sm.counts.get("error", 0))
+                  needs_review=sm.counts.get("needs_review", 0) + sm.counts.get("error", 0),
+                  prog=prog, pipeline=pipeline, stations=STATIONS, earned=earned_payload(prog, year))
 
 
 @router.get("/sections")

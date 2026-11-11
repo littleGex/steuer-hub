@@ -62,7 +62,7 @@ def get_settings() -> Settings:
         max_upload_mb=_int("STEUER_MAX_UPLOAD_MB", 25),
         auth_user=os.environ.get("STEUER_USER") or None,
         auth_password=os.environ.get("STEUER_PASSWORD") or None,
-        poll_seconds=_int("STEUER_POLL_SECONDS", 30),
+        poll_seconds=_int("STEUER_POLL_SECONDS", 5),
         ocr_lang=os.environ.get("STEUER_OCR_LANG", "deu+eng"),
         confidence_threshold=_float("STEUER_CONFIDENCE", 0.7),
         backup_hour=_int("STEUER_BACKUP_HOUR", 3),

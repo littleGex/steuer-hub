@@ -68,7 +68,7 @@ kilometre in 2026, Arbeitnehmer-Pauschbetrag 1,230 EUR.
 
 - **SQLite lives on local disk** (`./data`), never on the NAS share (file locking over SMB/NFS corrupts databases).
   Use an SSD rather than an SD card. The worker copies the DB to `<NAS>/_backups` daily and keeps 14 copies.
-- **Polling, not inotify**: change events are unreliable on network mounts, so the worker scans every 30 s.
+- **Polling, not inotify**: change events are unreliable on network mounts, so the worker scans every 5 s (it only lists folders; files are hashed once).
 - **OCR speed**: a Pi needs a few seconds per page. Uploads return immediately; the dashboard shows "being read".
 - **Security**: LAN only. Set `STEUER_USER`/`STEUER_PASSWORD` if anything else can reach the Pi, and add HTTPS with
   `Caddyfile.example`. For access away from home use WireGuard or Tailscale, never port forwarding. Cross-site form

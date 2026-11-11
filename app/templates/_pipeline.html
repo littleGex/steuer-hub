@@ -1,0 +1,21 @@
+{% from "_widgets.html" import worker_svg %}
+<section class="card pipeline" id="pipeline" data-year="{{ year }}" aria-label="Document pipeline">
+  <div class="month-head">
+    <h2>Pipeline</h2>
+    <span class="muted small" id="pipeline-msg" aria-live="polite">The worker is standing by.</span>
+  </div>
+  <div class="stations">
+    {% for key, name, icon in stations %}
+    <div class="station" data-station="{{ key }}">
+      <div class="icon" aria-hidden="true">{{ icon }}</div>
+      <div class="count">{{ pipeline.stations[key] }}</div>
+      <div class="name">{{ name }}</div>
+      <div class="papers"></div>
+      {% if key == 'filed' %}<div class="stamp-hit" aria-hidden="true">APPROVED</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="lane">{{ worker_svg() }}</div>
+  <p class="small muted pipeline-note">This follows the real status of your documents: the worker only walks when something actually moves.</p>
+  <script type="application/json" id="pipeline-data">{{ pipeline|tojson }}</script>
+</section>

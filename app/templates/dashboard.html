@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Overview {{ year }}</h1>
 
-<div class="tiles">
+<div class="tiles" id="tiles" data-live>
   <a class="tile" href="/documents?year={{ year }}"><b>{{ sm.docs_total }}</b><span>documents</span></a>
   <a class="tile {{ 'hot' if pending }}" href="/documents?year={{ year }}&amp;status=pending"><b>{{ pending }}</b><span>being read</span></a>
   <a class="tile {{ 'hot' if sm.open_items }}" href="/review?year={{ year }}"><b>{{ sm.open_items }}</b><span>open items</span></a>
@@ -33,6 +33,9 @@
     <small class="muted">PDF, JPG, PNG or TIFF. Files go to the NAS folder for the category and are read automatically.</small>
   </form>
 </section>
+
+{% include "_pipeline.html" %}
+{% include "_progress_summary.html" %}
 
 
 <section class="card">
@@ -82,6 +85,7 @@
 
 <section class="card">
   <h2>Latest uploads</h2>
+  <div id="recent" data-live>
   {% if recent %}
   <table>
     {% for d in recent %}
@@ -93,15 +97,8 @@
     {% endfor %}
   </table>
   {% else %}<p class="muted">Nothing uploaded for {{ year }} yet.</p>{% endif %}
+  </div>
 </section>
 
-{% if pending %}
-<script>
-  // refresh while documents are being read, but never while a file is chosen in the upload form
-  setTimeout(function () {
-    var f = document.querySelector('input[type=file]');
-    if (!f || !f.files.length) location.reload();
-  }, 10000);
-</script>
-{% endif %}
+<script type="application/json" id="earned-data">{{ earned|tojson }}</script>
 {% endblock %}

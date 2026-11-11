@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 
 from . import config, db, storage
 from .models import Document
-from .routes import dashboard, documents, export, people_page, review, workdays
+from .routes import api, dashboard, documents, export, people_page, progress_page, review, workdays
 from .settings import get_settings
 
 log = logging.getLogger("steuer.web")
@@ -52,5 +52,5 @@ def healthz():
 
 
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
-for module in (dashboard, documents, workdays, people_page, review, export):
+for module in (dashboard, documents, workdays, people_page, review, export, progress_page, api):
     app.include_router(module.router)

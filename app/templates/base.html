@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Steuer Hub{% endblock %}</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/fun.css">
+  <script src="/static/app.js" defer></script>
   {% block head %}{% endblock %}
 </head>
-<body>
+<body{% if flash and flash.msg.startswith('Signed off') %} data-celebrate="signoff"{% endif %}>
 <header>
   <div class="topbar">
     <strong>Steuer Hub</strong>
@@ -20,7 +22,7 @@
   </div>
   <nav>
     {% set path = request.url.path %}
-    {% for href, label in [('/', 'Dashboard'), ('/sections', 'Sections'), ('/documents', 'Documents'), ('/workdays', 'Work days'), ('/people', 'People'), ('/review', 'Review'), ('/export', 'Export')] %}
+    {% for href, label in [('/', 'Dashboard'), ('/sections', 'Sections'), ('/documents', 'Documents'), ('/workdays', 'Work days'), ('/people', 'People'), ('/progress', 'Progress'), ('/review', 'Review'), ('/export', 'Export')] %}
     <a href="{{ href }}?year={{ year }}" class="{{ 'on' if path == href or (href != '/' and path.startswith(href)) }}"{{ ' aria-current="page"'|safe if path == href }}>{{ label }}</a>
     {% endfor %}
   </nav>
