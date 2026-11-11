@@ -19,13 +19,10 @@
     </form>
   </div>
   <nav>
-    <a href="/?year={{ year }}">Dashboard</a>
-    <a href="/sections?year={{ year }}">Sections</a>
-    <a href="/documents?year={{ year }}">Documents</a>
-    <a href="/workdays?year={{ year }}">Work days</a>
-    <a href="/people?year={{ year }}">People</a>
-    <a href="/review?year={{ year }}">Review</a>
-    <a href="/export?year={{ year }}">Export</a>
+    {% set path = request.url.path %}
+    {% for href, label in [('/', 'Dashboard'), ('/sections', 'Sections'), ('/documents', 'Documents'), ('/workdays', 'Work days'), ('/people', 'People'), ('/review', 'Review'), ('/export', 'Export')] %}
+    <a href="{{ href }}?year={{ year }}" class="{{ 'on' if path == href or (href != '/' and path.startswith(href)) }}"{{ ' aria-current="page"'|safe if path == href }}>{{ label }}</a>
+    {% endfor %}
   </nav>
 </header>
 {% if not nas_ok %}<div class="banner err"><b>NAS problem:</b> {{ nas_msg }}</div>{% endif %}

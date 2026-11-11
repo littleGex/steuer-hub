@@ -50,7 +50,7 @@
 <section class="card">
   <h2>3. Figures</h2>
   <table>
-    {% for sec in sm.sections %}<tr><td>{{ sec.label }}</td><td class="num">{{ sec.total_cents|eur }}</td></tr>{% endfor %}
+    {% for sec in sm.sections %}<tr><td>{{ sec.label }}</td><td class="num">{% if sec.documents_only %}{{ sec.doc_count }} document(s){% else %}{{ sec.total_cents|eur }}{% endif %}</td></tr>{% endfor %}
   </table>
   <p><a href="/sections?year={{ year }}">Full breakdown</a></p>
 </section>

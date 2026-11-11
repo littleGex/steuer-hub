@@ -92,3 +92,21 @@ def test_people_copied_to_next_year(env):
         s.commit()
         nxt = ensure_people(s, 2027)
     assert nxt[0].name == "Alan" and nxt[0].steuerklasse == 4 and nxt[0].commute_km == 12
+
+
+def test_investment_documents_are_never_counted(env):
+    with session_scope() as s:
+        p = ensure_people(s, 2026)[0]
+        s.add_all([
+            _doc(2026, "kapitalertraege", 123456, person_id=p.id),
+            _doc(2026, "kapitalertraege", 999, status="needs_review"),
+            _doc(2026, "arbeitsmittel", 10000),
+        ])
+        s.flush()
+        sm = compute_year(s, 2026)
+    secs = {sec.key: sec for sec in sm.sections}
+    kap = secs["kapitalertraege"]
+    assert kap.documents_only and kap.doc_count == 2 and kap.open_count == 1
+    assert kap.total_cents == 0 and kap.approved_cents == 0
+    assert sm.people[0].doc_cents == 10000                       # Werbungskosten unaffected
+    assert sm.snapshot["sections"]["kapitalertraege"] == 2       # a new certificate shows up as a change

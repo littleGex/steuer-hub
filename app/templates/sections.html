@@ -40,11 +40,12 @@
         {% if ln.note %}<br><small class="muted">{{ ln.note }}</small>{% endif %}
         {% if ln.capped and not ln.virtual %}<br><small class="warn-text">capped</small>{% endif %}</td>
       <td class="num">{{ ln.count }}</td>
+      {% if sec.documents_only %}<td class="num muted" colspan="2">not counted</td>{% else %}
       <td class="num">{{ ln.counted_cents|eur }}{% if ln.gross_cents != ln.counted_cents and not ln.virtual %}<br><small class="muted">of {{ ln.gross_cents|eur }}</small>{% endif %}</td>
-      <td class="num">{{ ln.approved_cents|eur }}</td>
+      <td class="num">{{ ln.approved_cents|eur }}</td>{% endif %}
     </tr>
     {% endfor %}
-    <tr class="total"><td colspan="2">Total</td><td class="num">{{ sec.total_cents|eur }}</td><td class="num">{{ sec.approved_cents|eur }}</td></tr>
+    {% if not sec.documents_only %}<tr class="total"><td colspan="2">Total</td><td class="num">{{ sec.total_cents|eur }}</td><td class="num">{{ sec.approved_cents|eur }}</td></tr>{% endif %}
   </table>
   {% for ln in sec.lines if not ln.virtual and by_cat.get(ln.key) %}
   <details>
@@ -54,7 +55,7 @@
       <tr>
         <td>{{ d.doc_date|dmy }}</td>
         <td><a href="/documents/{{ d.id }}?year={{ year }}">{{ d.vendor or d.original_name }}</a>{% if d.person_id %}<br><small class="muted">{{ pnames.get(d.person_id) }}</small>{% endif %}</td>
-        <td class="num">{{ d.amount_cents|eur }}</td>
+        <td class="num">{% if not sec.documents_only %}{{ d.amount_cents|eur }}{% endif %}</td>
         <td>{{ badge(d.status) }}</td>
       </tr>
       {% endfor %}

@@ -10,6 +10,8 @@ receipts on your NAS, entirely on your home network.
 - **Sections**: totals per ELSTER section, per person for Anlage N, with the Pauschbetrag comparison.
 - **Review gate**: approve items, then sign off. Any later change shows "figures changed since sign-off".
 - **Export** CSV (summary + audit list of all documents). Submission stays manual in Mein ELSTER.
+- **Investments**: broker and bank tax certificates (Anlage KAP) get their own folder and go through review, but no
+  amount is added to any total. Enter the figures from the Jahressteuerbescheinigung in Anlage KAP yourself.
 
 ## Quick start (Raspberry Pi, Docker)
 
@@ -44,6 +46,7 @@ that file once.
 <NAS>/
   2026/
     arbeitsmittel/  fortbildung/  versicherung/  schulgeld/  spenden/  steuererklaerung/  handwerker/  sonstiges/
+    kapitalertraege/   broker and bank tax certificates (Anlage KAP): stored and reviewed, never added to totals
     _inbox/    drop scans here (e.g. from a scanner); they appear as "Unsorted" until you pick a category
     _trash/    "Remove" moves the original here, nothing is deleted
   _backups/    daily copy of the SQLite DB

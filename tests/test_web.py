@@ -213,3 +213,65 @@ def test_nightly_backup(client, env):
     first = worker_run.backup_db()
     assert first and first.is_file() and first.parent.name == "_backups"
     assert worker_run.backup_db() is None                        # only once per day
+
+
+def _march(pid):
+    from datetime import date
+    with session_scope() as s:
+        return {w.day: w.kind for w in s.scalars(select(WorkDay).where(
+            WorkDay.person_id == pid, WorkDay.day >= date(2026, 3, 1), WorkDay.day <= date(2026, 3, 31)))}
+
+
+def test_workdays_month_cards(client):
+    from datetime import date
+    pid = person_id()
+    json = {"Accept": "application/json"}
+    # March 2026 has 22 weekdays. One day is already marked away and must stay untouched.
+    client.post("/workdays/set", data={"person_id": str(pid), "day": "2026-03-02", "kind": "away"}, follow_redirects=False)
+
+    r = client.post("/workdays/month", data={"person_id": pid, "year": 2026, "month": 3, "office": "12", "home": "8"},
+                    headers=json)
+    body = r.json()
+    assert r.status_code == 200 and body["ok"]
+    assert body["month"] == {**body["month"], "office": 12, "home": 8, "away": 1, "weekdays": 22, "free": 1}
+    assert body["totals"] == {"office": 12, "home": 8, "away": 1}
+    rows = _march(pid)
+    assert rows[date(2026, 3, 2)] == "away"
+    assert all(d.weekday() < 5 for d in rows)                       # weekends never filled
+    office = sorted(d for d, k in rows.items() if k == "office")
+    assert office[0] == date(2026, 3, 3)                            # earliest free weekdays first
+
+    # Lowering one count and raising the other in one request frees days first, then reuses them.
+    r = client.post("/workdays/month", data={"person_id": pid, "year": 2026, "month": 3, "office": "4", "home": "17"},
+                    headers=json)
+    assert r.json()["ok"] and r.json()["month"]["office"] == 4 and r.json()["month"]["home"] == 17
+    rows = _march(pid)
+    kept = sorted(d for d, k in rows.items() if k == "office")
+    assert kept == office[:4]                                       # lowering clears the latest days
+
+    # More than the free weekdays is refused and nothing changes.
+    before = _march(pid)
+    r = client.post("/workdays/month", data={"person_id": pid, "year": 2026, "month": 3, "home": "20"}, headers=json)
+    assert r.status_code == 400 and not r.json()["ok"] and "free weekday" in r.json()["error"]
+    assert _march(pid) == before
+
+    # Bad input and a person from another year are refused.
+    assert client.post("/workdays/month", data={"person_id": pid, "year": 2026, "month": 3, "home": "-1"},
+                       headers=json).status_code == 400
+    assert client.post("/workdays/month", data={"person_id": pid, "year": 2027, "month": 3, "home": "1"},
+                       headers=json).status_code == 400
+
+    # Without JavaScript the form posts and redirects back.
+    r = client.post("/workdays/month", data={"person_id": pid, "year": 2026, "month": 4, "home": "3",
+                                             "next": f"/workdays?year=2026&person={pid}"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == f"/workdays?year=2026&person={pid}"
+
+    # The year view shows the cards and the totals.
+    page = client.get(f"/workdays?year=2026&person={pid}").text
+    assert page.count("data-month") == 12 and 'data-total="home">20<' in page
+
+
+def test_workdays_month_cross_origin_blocked(client):
+    r = client.post("/workdays/month", data={"person_id": person_id(), "year": 2026, "month": 3, "home": "5"},
+                    headers={"Origin": "http://evil.example", "Accept": "application/json"}, follow_redirects=False)
+    assert r.status_code == 403

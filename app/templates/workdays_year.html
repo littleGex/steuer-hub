@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Work days {{ year }} · Steuer Hub{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>Work days</h1>
+  {% if people|length > 1 %}
+  <div class="segmented" role="tablist" aria-label="Person">
+    {% for p in people %}<a role="tab" aria-selected="{{ 'true' if p.id == person.id else 'false' }}" class="{{ 'on' if p.id == person.id }}" href="/workdays?year={{ year }}&amp;person={{ p.id }}">{{ p.name }}</a>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<section class="card summary" id="totals" data-max-home="{{ max_home }}">
+  <div class="stat home">
+    <span class="label">Home office</span>
+    <b><span data-total="home">{{ totals.home }}</span><small> / {{ max_home }}</small></b>
+    <div class="meter"><div data-meter style="width: {{ [100, (totals.home / max_home * 100)|round|int]|min }}%"></div></div>
+  </div>
+  <div class="stat office">
+    <span class="label">Office</span>
+    <b data-total="office">{{ totals.office }}</b>
+    <span class="hint">commute days</span>
+  </div>
+  <div class="stat away">
+    <span class="label">Away</span>
+    <b data-total="away">{{ totals.away }}</b>
+    <span class="hint">leave, travel, sick</span>
+  </div>
+</section>
+
+<p class="muted small">Use the arrows or type a number. Days go onto the earliest free weekdays of the month, and
+lowering a count clears the latest ones. Open a month to set individual days, weekends or "away".</p>
+
+<div class="months">
+  {% for m in months %}
+  <form method="post" action="/workdays/month" class="card month {{ 'current' if year == today.year and m.month == today.month }}" data-month>
+    <input type="hidden" name="person_id" value="{{ person.id }}">
+    <input type="hidden" name="year" value="{{ year }}">
+    <input type="hidden" name="month" value="{{ m.month }}">
+    <input type="hidden" name="next" value="/workdays?year={{ year }}&amp;person={{ person.id }}">
+    <div class="month-head">
+      <h2>{{ m.name }}</h2>
+      <a class="more" href="/workdays?year={{ year }}&amp;m={{ m.month }}&amp;person={{ person.id }}" aria-label="Days in {{ m.name }}">Days&nbsp;›</a>
+    </div>
+    {% for kind, label in [('office', 'Office'), ('home', 'Home office')] %}
+    <div class="stepper-row">
+      <span class="dot {{ kind }}"></span>
+      <label for="m{{ m.month }}-{{ kind }}">{{ label }}</label>
+      <div class="stepper">
+        <button type="button" data-step="-1" data-kind="{{ kind }}" aria-label="One less {{ label|lower }} day in {{ m.name }}">−</button>
+        <input id="m{{ m.month }}-{{ kind }}" name="{{ kind }}" type="number" inputmode="numeric" min="0" max="{{ m.weekdays }}" value="{{ m[kind] }}" data-value="{{ m[kind] }}">
+        <button type="button" data-step="1" data-kind="{{ kind }}" aria-label="One more {{ label|lower }} day in {{ m.name }}">+</button>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="month-foot">
+      <span data-meta>{{ m.weekdays }} weekdays · <span data-free>{{ m.free }}</span> free{% if m.away %} · <span data-away>{{ m.away }}</span> away{% else %}<span data-away hidden></span>{% endif %}</span>
+      <span class="status" data-status aria-live="polite"></span>
+      <noscript><button class="small">Save</button></noscript>
+    </div>
+  </form>
+  {% endfor %}
+</div>
+<script src="/static/workdays.js" defer></script>
+{% endblock %}

@@ -37,6 +37,11 @@ class Section:
     lines: list[Line]
     per_person: bool = False
     compare_pauschbetrag: bool = False
+    documents_only: bool = False  # documents are collected and reviewed, but add no amount to any total
+
+    @property
+    def doc_count(self) -> int:
+        return sum(l.count for l in self.lines)
 
     @property
     def total_cents(self) -> int:
@@ -93,7 +98,8 @@ class YearSummary:
 
     @property
     def snapshot(self) -> dict:
-        return {"sections": {s.key: s.total_cents for s in self.sections}, "docs": self.docs_total}
+        return {"sections": {s.key: s.doc_count if s.documents_only else s.total_cents for s in self.sections},
+                "docs": self.docs_total}
 
 
 def _d(x) -> Decimal:
@@ -131,6 +137,7 @@ def compute_year(s: Session, year: int) -> YearSummary:
     sections: list[Section] = []
     for skey, sconf in secs.items():
         per_person = bool(sconf.get("per_person"))
+        docs_only = bool(sconf.get("documents_only"))
         lines: list[Line] = []
         for ckey, cconf in cats.items():
             if cconf["section"] != skey:
@@ -143,6 +150,10 @@ def compute_year(s: Session, year: int) -> YearSummary:
                 groups = [(None, [d for (c, _o), ds in grouped.items() if c == ckey for d in ds])]
             line = Line(key=ckey, label=cconf["label"], note=cconf.get("hint", ""))
             for oid, ds in groups:
+                if docs_only:
+                    line.count += len(ds)
+                    line.open_count += sum(1 for d in ds if d.is_open)
+                    continue
                 gross = sum(d.amount_cents or 0 for d in ds)
                 counted, capped = _apply(gross, factor, cap)
                 appr, _ = _apply(sum(d.amount_cents or 0 for d in ds if d.status == "approved"), factor, cap)
@@ -156,7 +167,7 @@ def compute_year(s: Session, year: int) -> YearSummary:
                     person_doc_cents[oid] += counted
             lines.append(line)
         sections.append(Section(skey, sconf["label"], sconf.get("hint", ""), lines, per_person,
-                                bool(sconf.get("compare_pauschbetrag"))))
+                                bool(sconf.get("compare_pauschbetrag")), docs_only))
 
     # work-day based allowances
     start, end = date(year, 1, 1), date(year, 12, 31)

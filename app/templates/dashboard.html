@@ -1,7 +1,14 @@
 {% extends "base.html" %}
 {% from "_macros.html" import badge, person_select %}
 {% block content %}
-<h1>{{ year }} overview</h1>
+<h1>Overview {{ year }}</h1>
+
+<div class="tiles">
+  <a class="tile" href="/documents?year={{ year }}"><b>{{ sm.docs_total }}</b><span>documents</span></a>
+  <a class="tile {{ 'hot' if pending }}" href="/documents?year={{ year }}&amp;status=pending"><b>{{ pending }}</b><span>being read</span></a>
+  <a class="tile {{ 'hot' if sm.open_items }}" href="/review?year={{ year }}"><b>{{ sm.open_items }}</b><span>open items</span></a>
+  <a class="tile" href="/review?year={{ year }}"><b>{{ sm.auto_items }}</b><span>auto-read, not approved</span></a>
+</div>
 
 {% for w in sm.warnings %}<div class="note warn">{{ w }}</div>{% endfor %}
 {% if sm.signed_off_at %}
@@ -27,34 +34,29 @@
   </form>
 </section>
 
-<div class="tiles">
-  <a class="tile" href="/documents?year={{ year }}"><b>{{ sm.docs_total }}</b><span>documents</span></a>
-  <a class="tile {{ 'hot' if pending }}" href="/documents?year={{ year }}&amp;status=pending"><b>{{ pending }}</b><span>being read</span></a>
-  <a class="tile {{ 'hot' if sm.open_items }}" href="/review?year={{ year }}"><b>{{ sm.open_items }}</b><span>open items</span></a>
-  <a class="tile" href="/review?year={{ year }}"><b>{{ sm.auto_items }}</b><span>auto-read, not approved</span></a>
-</div>
 
 <section class="card">
-  <h2>Work days</h2>
+  <div class="month-head"><h2>Work days</h2><a class="more" href="/workdays?year={{ year }}">Months&nbsp;›</a></div>
   {% for ps in sm.people %}
   <div class="person">
     <strong>{{ ps.person.name }}</strong>
-    <span class="muted">Steuerklasse {{ ps.person.steuerklasse }}{% if ps.person.faktor %}, Faktor {{ ps.person.faktor }}{% endif %}</span>
+    <span class="muted small">Steuerklasse {{ ps.person.steuerklasse }}{% if ps.person.faktor %}, Faktor {{ ps.person.faktor }}{% endif %}</span>
     <div class="meter"><div style="width: {{ [100, ((ps.home_days / ps.home_max_days) * 100)|round|int]|min }}%"></div></div>
-    <div class="muted">Home office {{ ps.home_days }} / {{ ps.home_max_days }} days &middot; Office {{ ps.office_days }} &middot; Away {{ ps.away_days }}</div>
+    <div class="small"><span class="dot home"></span> Home office <b>{{ ps.home_days }}</b><span class="muted"> / {{ ps.home_max_days }}</span>
+      &nbsp; <span class="dot office"></span> Office <b>{{ ps.office_days }}</b>
+      &nbsp; <span class="dot away"></span> Away <b>{{ ps.away_days }}</b></div>
     {% if year == today.year %}
     <form method="post" action="/workdays/set" class="inline">
       <input type="hidden" name="person_id" value="{{ ps.person.id }}">
       <input type="hidden" name="next" value="/?year={{ year }}">
-      <span class="muted">Today:</span>
+      <span class="muted small">Today</span>
       {% for k, lbl in [('office', 'Office'), ('home', 'Home'), ('away', 'Away')] %}
-      <button name="kind" value="{{ k }}" class="chip {{ 'on' if today_kinds.get(ps.person.id) == k }}">{{ lbl }}</button>
+      <button name="kind" value="{{ k }}" class="chip {{ k }} {{ 'on' if today_kinds.get(ps.person.id) == k }}">{{ lbl }}</button>
       {% endfor %}
     </form>
     {% endif %}
   </div>
   {% endfor %}
-  <a href="/workdays?year={{ year }}">Edit the calendar</a>
 </section>
 
 <section class="card">
@@ -65,10 +67,10 @@
     {% for ln in sec.lines %}
     <tr>
       <td>{{ ln.label }}{% if ln.open_count %} <span class="badge needs_review">{{ ln.open_count }} open</span>{% endif %}</td>
-      <td class="num">{{ ln.counted_cents|eur }}</td>
+      <td class="num">{% if sec.documents_only %}{{ ln.count }} doc{{ 's' if ln.count != 1 }}{% else %}{{ ln.counted_cents|eur }}{% endif %}</td>
     </tr>
     {% endfor %}
-    <tr class="total"><td>Total</td><td class="num">{{ sec.total_cents|eur }}</td></tr>
+    {% if not sec.documents_only %}<tr class="total"><td>Total</td><td class="num">{{ sec.total_cents|eur }}</td></tr>{% endif %}
     {% endfor %}
   </table>
   <p><a href="/sections?year={{ year }}">Details per section</a> &middot; <a href="/export?year={{ year }}">Export CSV</a></p>

@@ -54,6 +54,10 @@ def summary_csv(request: Request, s: Session = Depends(get_db)):
     f = lambda c: fmt_plain(c, dec)  # noqa: E731
     rows: list[list] = [["Year", "Status", "Section", "Line", "Documents/days", "Gross", "Counted", "Reviewed", "Open"]]
     for sec in sm.sections:
+        if sec.documents_only:  # documents are listed, but no amount counts towards anything
+            for ln in sec.lines:
+                rows.append([year, state, csv_safe(sec.label), csv_safe(ln.label), ln.count, "", "", "", ln.open_count])
+            continue
         for ln in sec.lines:
             rows.append([year, state, csv_safe(sec.label), csv_safe(ln.label), ln.count, f(ln.gross_cents),
                          f(ln.counted_cents), f(ln.approved_cents), ln.open_count])

@@ -4,6 +4,7 @@
 #   per_person: true       figures are split per person (Anlage N is per person)
 #   work_allowances: true  adds Homeoffice-Pauschale + Entfernungspauschale lines from the work-day table
 #   compare_pauschbetrag   compare each person's total with the Arbeitnehmer-Pauschbetrag
+#   documents_only: true   collect and review documents, but add no euro amount to any total
 # categories:
 #   factor: share that counts (e.g. 0.30 for Schulgeld)
 #   cap_eur: maximum that counts for the whole household
@@ -24,6 +25,10 @@ sections:
   steuerermaessigung:
     label: "Steuerermäßigungen (§ 35a EStG)"
     hint: "Reduces the tax itself, not the income."
+  kapitalertraege:
+    label: "Kapitalerträge (Anlage KAP)"
+    hint: "Broker and bank tax certificates. Income, not a deduction: nothing here is added to any total. Enter the figures from the Jahressteuerbescheinigung in Anlage KAP."
+    documents_only: true
 
 categories:
   versicherung:
@@ -57,3 +62,7 @@ categories:
     factor: 0.20
     cap_eur: 1200
     hint: "Enter the labour portion only (edit the amount). 20 %, max 1,200 €."
+  kapitalertraege:
+    label: "Investments / dividends (Anlage KAP)"
+    section: kapitalertraege
+    hint: "Jahressteuerbescheinigung, Erträgnisaufstellung, dividend statements. Assign each to its account holder."
