@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Steuer Hub{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+<header>
+  <div class="topbar">
+    <strong>Steuer Hub</strong>
+    <form method="get" class="yearform">
+      <select name="year" onchange="this.form.submit()" aria-label="Tax year">
+        {% for y in years %}<option value="{{ y }}" {{ 'selected' if y == year }}>{{ y }}</option>{% endfor %}
+      </select>
+      <noscript><button>Go</button></noscript>
+    </form>
+  </div>
+  <nav>
+    <a href="/?year={{ year }}">Dashboard</a>
+    <a href="/sections?year={{ year }}">Sections</a>
+    <a href="/documents?year={{ year }}">Documents</a>
+    <a href="/workdays?year={{ year }}">Work days</a>
+    <a href="/people?year={{ year }}">People</a>
+    <a href="/review?year={{ year }}">Review</a>
+    <a href="/export?year={{ year }}">Export</a>
+  </nav>
+</header>
+{% if not nas_ok %}<div class="banner err"><b>NAS problem:</b> {{ nas_msg }}</div>{% endif %}
+{% if worker != 'ok' %}<div class="banner warn">The background worker {{ 'has not reported in yet' if worker == 'never' else 'seems to be stopped' }}. Uploads stay queued until it runs.</div>{% endif %}
+{% if flash %}<div class="banner {{ flash.kind }}">{{ flash.msg }}</div>{% endif %}
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

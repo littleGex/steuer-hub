@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Work days {{ year }}</h1>
+
+<div class="tabs">
+  {% for p in people %}<a class="chip {{ 'on' if p.id == person.id }}" href="/workdays?year={{ year }}&amp;m={{ month }}&amp;person={{ p.id }}">{{ p.name }}</a>{% endfor %}
+</div>
+
+<p>Year so far: <b>{{ year_counts.get('home', 0) }}</b> home office (max {{ 210 }}), <b>{{ year_counts.get('office', 0) }}</b> office, <b>{{ year_counts.get('away', 0) }}</b> away.</p>
+
+<div class="monthnav">
+  {% if month > 1 %}<a class="button" href="/workdays?year={{ year }}&amp;m={{ month - 1 }}&amp;person={{ person.id }}">&larr;</a>{% else %}<span></span>{% endif %}
+  <strong>{{ month_name }} {{ year }}</strong>
+  {% if month < 12 %}<a class="button" href="/workdays?year={{ year }}&amp;m={{ month + 1 }}&amp;person={{ person.id }}">&rarr;</a>{% else %}<span></span>{% endif %}
+</div>
+
+<table class="days">
+  {% for d in days %}
+  <tr class="{{ 'weekend' if d.weekend }} {{ 'today' if d.day == today }}">
+    <td>{{ d.day.strftime('%a %d.') }}</td>
+    <td>
+      <form method="post" action="/workdays/set" class="inline">
+        <input type="hidden" name="person_id" value="{{ person.id }}">
+        <input type="hidden" name="day" value="{{ d.day.isoformat() }}">
+        <input type="hidden" name="next" value="/workdays?year={{ year }}&amp;m={{ month }}&amp;person={{ person.id }}">
+        {% for k, lbl in [('office', 'Office'), ('home', 'Home'), ('away', 'Away')] %}
+        <button name="kind" value="{{ k }}" class="chip {{ 'on' if d.kind == k }}">{{ lbl }}</button>
+        {% endfor %}
+        {% if d.kind %}<button name="kind" value="clear" class="chip" aria-label="Clear">&times;</button>{% endif %}
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+<p class="muted">{{ month_counts.get('home', 0) }} home, {{ month_counts.get('office', 0) }} office, {{ month_counts.get('away', 0) }} away this month. Public holidays are not filled in automatically: mark them "Away" or leave them empty.</p>
+
+<section class="card">
+  <h2>Fill a range</h2>
+  <form method="post" action="/workdays/range" class="stack">
+    <input type="hidden" name="person_id" value="{{ person.id }}">
+    <input type="hidden" name="next" value="/workdays?year={{ year }}&amp;m={{ month }}&amp;person={{ person.id }}">
+    <div class="row"><label>From <input type="date" name="start" required min="{{ year }}-01-01" max="{{ year }}-12-31"></label>
+    <label>To <input type="date" name="end" required min="{{ year }}-01-01" max="{{ year }}-12-31"></label></div>
+    <label>Set to
+      <select name="kind"><option value="home">Home office</option><option value="office">Office</option><option value="away">Away (leave, travel, sick)</option><option value="clear">Clear</option></select>
+    </label>
+    <label class="check"><input type="checkbox" name="weekdays_only" value="1" checked> Weekdays only</label>
+    <button class="primary">Apply</button>
+  </form>
+</section>
+{% endblock %}

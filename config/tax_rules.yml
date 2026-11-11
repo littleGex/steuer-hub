@@ -1,0 +1,27 @@
+# Tax rules per year. A year missing here falls back to the closest EARLIER year (the app warns).
+# Re-check these figures every year before relying on the numbers.
+#
+# 2026 values checked in Nov 2026:
+#   Homeoffice-Tagespauschale 6 EUR/day, max 210 days (1,260 EUR) - permanent rule since 2023
+#   Entfernungspauschale 0.38 EUR for every km from 1 Jan 2026
+#   Arbeitnehmer-Pauschbetrag 1,230 EUR (reported to rise to 1,430 EUR from 2027)
+# The one-way commute distance is stored per person on the People page.
+
+years:
+  2025:
+    homeoffice:
+      rate_eur_per_day: 6.0
+      max_days: 210
+    commute:
+      rate_first_20km_eur: 0.30
+      rate_from_21km_eur: 0.38
+    werbungskosten_pauschbetrag_eur: 1230
+
+  2026:
+    homeoffice:
+      rate_eur_per_day: 6.0
+      max_days: 210
+    commute:
+      rate_first_20km_eur: 0.38
+      rate_from_21km_eur: 0.38
+    werbungskosten_pauschbetrag_eur: 1230

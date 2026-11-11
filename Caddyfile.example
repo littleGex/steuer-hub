@@ -1,0 +1,8 @@
+# Optional HTTPS in front of the app, e.g. https://steuer.home.arpa on your LAN.
+# Run Caddy on the Pi (docker or package) and point it at the web container.
+# `tls internal` uses Caddy's own CA; import it on your devices once.
+
+steuer.home.arpa {
+	tls internal
+	reverse_proxy 127.0.0.1:8080
+}

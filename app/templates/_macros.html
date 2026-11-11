@@ -1,0 +1,17 @@
+{% macro badge(status) -%}
+<span class="badge {{ status }}">{{ STATUS_LABEL.get(status, status) }}</span>
+{%- endmacro %}
+
+{% macro person_select(people, selected, name="person_id", blank="Household / shared") -%}
+<select name="{{ name }}">
+  <option value="">{{ blank }}</option>
+  {% for p in people %}<option value="{{ p.id }}" {{ 'selected' if p.id == selected }}>{{ p.name }}</option>{% endfor %}
+</select>
+{%- endmacro %}
+
+{% macro category_select(categories, selected, name="category") -%}
+<select name="{{ name }}">
+  {% for k, c in categories.items() %}<option value="{{ k }}" {{ 'selected' if k == selected }}>{{ c.label }}</option>{% endfor %}
+  <option value="unsorted" {{ 'selected' if selected == 'unsorted' }}>Unsorted</option>
+</select>
+{%- endmacro %}

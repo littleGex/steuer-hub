@@ -1,0 +1,59 @@
+# Folder (category) -> tax section mapping. Edit freely; no code changes needed.
+#
+# sections:
+#   per_person: true       figures are split per person (Anlage N is per person)
+#   work_allowances: true  adds Homeoffice-Pauschale + Entfernungspauschale lines from the work-day table
+#   compare_pauschbetrag   compare each person's total with the Arbeitnehmer-Pauschbetrag
+# categories:
+#   factor: share that counts (e.g. 0.30 for Schulgeld)
+#   cap_eur: maximum that counts for the whole household
+
+sections:
+  werbungskosten:
+    label: "Werbungskosten (Anlage N)"
+    hint: "Per person. The Finanzamt applies the Arbeitnehmer-Pauschbetrag automatically; itemising only pays off above it."
+    per_person: true
+    work_allowances: true
+    compare_pauschbetrag: true
+  sonderausgaben_vorsorge:
+    label: "Vorsorgeaufwendungen (Anlage Vorsorgeaufwand)"
+    hint: "Insurance contributions. Höchstbeträge are applied by ELSTER / the Finanzamt; figures here are plain sums."
+  sonderausgaben_sonstige:
+    label: "Sonstige Sonderausgaben"
+    hint: "Schulgeld and donations."
+  steuerermaessigung:
+    label: "Steuerermäßigungen (§ 35a EStG)"
+    hint: "Reduces the tax itself, not the income."
+
+categories:
+  versicherung:
+    label: "Insurance"
+    section: sonderausgaben_vorsorge
+  arbeitsmittel:
+    label: "Work equipment"
+    section: werbungskosten
+    hint: "Items over the GWG limit may need to be depreciated over several years."
+  fortbildung:
+    label: "Training / courses"
+    section: werbungskosten
+  steuererklaerung:
+    label: "Tax return costs (software, advice)"
+    section: werbungskosten
+    hint: "Check how much is deductible for your situation."
+  sonstiges:
+    label: "Other work-related"
+    section: werbungskosten
+  schulgeld:
+    label: "School fees (Schulgeld)"
+    section: sonderausgaben_sonstige
+    factor: 0.30
+    hint: "30 % counts, only for eligible schools. The 5,000 € cap per child is not applied here."
+  spenden:
+    label: "Donations"
+    section: sonderausgaben_sonstige
+  handwerker:
+    label: "Tradespeople (labour only)"
+    section: steuerermaessigung
+    factor: 0.20
+    cap_eur: 1200
+    hint: "Enter the labour portion only (edit the amount). 20 %, max 1,200 €."

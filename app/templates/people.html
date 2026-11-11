@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>People {{ year }}</h1>
+<p class="muted">Everyone on the return. Receipts and work days are assigned to a person; Werbungskosten, the Pauschbetrag and the commute are worked out per person. Steuerklasse is stored per year because it can change.</p>
+
+{% for w in warnings %}<div class="note warn">{{ w }}</div>{% endfor %}
+{% if hint %}<div class="note">{{ hint }}</div>{% endif %}
+
+{% for p in people %}
+<form method="post" action="/people/{{ p.id }}" class="card stack">
+  <label>Name <input type="text" name="name" required maxlength="80" value="{{ p.name }}"></label>
+  <div class="row">
+    <label>Steuerklasse
+      <select name="steuerklasse">{% for k in klassen %}<option value="{{ k }}" {{ 'selected' if k == p.steuerklasse }}>{{ k }}</option>{% endfor %}</select>
+    </label>
+    <label>Faktor (IV only) <input type="text" name="faktor" inputmode="decimal" placeholder="0,85" value="{{ p.faktor if p.faktor is not none else '' }}" size="5"></label>
+    <label>Commute km (one way) <input type="number" name="commute_km" min="0" max="500" value="{{ p.commute_km }}" size="4"></label>
+  </div>
+  <div class="row">
+    <button class="primary">Save</button>
+    {% if people|length > 1 %}<button formaction="/people/{{ p.id }}/delete" class="danger" onclick="return confirm('Remove {{ p.name|e }}?')">Remove</button>{% endif %}
+  </div>
+</form>
+{% endfor %}
+
+<section class="card">
+  <h2>Add a person</h2>
+  <form method="post" action="/people/add" class="stack">
+    <input type="hidden" name="year" value="{{ year }}">
+    <label>Name <input type="text" name="name" required maxlength="80"></label>
+    <div class="row">
+      <label>Steuerklasse <select name="steuerklasse">{% for k in klassen %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select></label>
+      <label>Faktor <input type="text" name="faktor" inputmode="decimal" size="5"></label>
+      <label>Commute km <input type="number" name="commute_km" min="0" max="500" value="0" size="4"></label>
+    </div>
+    <button class="primary">Add</button>
+  </form>
+</section>
+<p class="muted">Steuerklasse itself does not change the annual assessment; it controls the monthly wage-tax withholding. It is kept here as reference data and for plausibility checks (e.g. III pairs with V, IV with IV).</p>
+{% endblock %}

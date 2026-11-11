@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block content %}
+<h1>Review {{ year }}</h1>
+
+{% for w in sm.warnings %}<div class="note warn">{{ w }}</div>{% endfor %}
+
+{% if sm.signed_off_at %}
+<div class="note {{ 'warn' if sm.changed_since_signoff else 'ok' }}">
+  Signed off on {{ sm.signed_off_at.strftime('%d.%m.%Y %H:%M') }}.
+  {% if sm.changed_since_signoff %}<b>Figures have changed since then.</b> Sign off again after checking.{% endif %}
+  <form method="post" action="/review/reopen" class="inline"><input type="hidden" name="year" value="{{ year }}"><button>Remove sign-off</button></form>
+</div>
+{% endif %}
+
+<section class="card">
+  <h2>1. Open items ({{ sm.open_items }})</h2>
+  {% if open_docs %}
+  <table>
+    {% for d in open_docs %}
+    <tr>
+      <td><a href="/documents/{{ d.id }}?year={{ year }}&amp;next=/review%3Fyear%3D{{ year }}">{{ d.vendor or d.original_name }}</a><br>
+        <small class="muted">{{ catlabels.get(d.category, d.category) }}{% if d.person_id is none and people|length > 1 %} &middot; no person{% endif %}</small>
+        {% if d.flag_list %}<br><small class="warn-text">{{ d.flag_list[0] }}</small>{% endif %}</td>
+      <td class="num">{{ d.amount_cents|eur }}</td>
+      <td>{{ badge(d.status) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">Nothing open.</p>{% endif %}
+</section>
+
+<section class="card">
+  <h2>2. Auto-read, not yet approved ({{ auto_docs|length }})</h2>
+  <p class="muted">These were read with high confidence. Glance over the amounts, then approve.</p>
+  {% if auto_docs %}
+  <table>
+    {% for d in auto_docs %}
+    <tr>
+      <td><a href="/documents/{{ d.id }}?year={{ year }}&amp;next=/review%3Fyear%3D{{ year }}">{{ d.vendor or d.original_name }}</a><br><small class="muted">{{ d.doc_date|dmy }} &middot; {{ catlabels.get(d.category, d.category) }}</small></td>
+      <td class="num">{{ d.amount_cents|eur }}</td>
+      <td><form method="post" action="/documents/{{ d.id }}/approve" class="inline"><input type="hidden" name="next" value="/review?year={{ year }}"><button>Approve</button></form></td>
+    </tr>
+    {% endfor %}
+  </table>
+  <form method="post" action="/review/approve-all"><input type="hidden" name="year" value="{{ year }}"><button>Approve all {{ auto_docs|length }}</button></form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>3. Figures</h2>
+  <table>
+    {% for sec in sm.sections %}<tr><td>{{ sec.label }}</td><td class="num">{{ sec.total_cents|eur }}</td></tr>{% endfor %}
+  </table>
+  <p><a href="/sections?year={{ year }}">Full breakdown</a></p>
+</section>
+
+<section class="card">
+  <h2>4. Sign off</h2>
+  <form method="post" action="/review/signoff" class="stack">
+    <input type="hidden" name="year" value="{{ year }}">
+    <label class="check"><input type="checkbox" name="confirm" value="1" {{ 'disabled' if sm.open_items }}> I have checked the figures against my documents.</label>
+    <button class="primary" {{ 'disabled' if sm.open_items }}>Sign off {{ year }}</button>
+    {% if sm.open_items %}<small class="muted">Resolve the {{ sm.open_items }} open item(s) first.</small>{% endif %}
+  </form>
+  <p class="muted">Signing off does not send anything. Enter the figures in Mein ELSTER yourself, then submit there.</p>
+  <a class="button" href="/export?year={{ year }}">Go to export</a>
+</section>
+{% endblock %}

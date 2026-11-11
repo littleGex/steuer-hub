@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, person_select %}
+{% block content %}
+<h1>{{ year }} overview</h1>
+
+{% for w in sm.warnings %}<div class="note warn">{{ w }}</div>{% endfor %}
+{% if sm.signed_off_at %}
+  <div class="note {{ 'warn' if sm.changed_since_signoff else 'ok' }}">
+    {% if sm.changed_since_signoff %}Figures changed since the sign-off on {{ sm.signed_off_at.strftime('%d.%m.%Y') }}. Review again.{% else %}Signed off on {{ sm.signed_off_at.strftime('%d.%m.%Y') }}.{% endif %}
+  </div>
+{% endif %}
+
+<section class="card">
+  <h2>Upload receipts</h2>
+  <form method="post" action="/upload" enctype="multipart/form-data" class="stack">
+    <input type="hidden" name="year" value="{{ year }}">
+    <label>Category
+      <select name="category">
+        {% for k, c in categories.items() %}<option value="{{ k }}">{{ c.label }}</option>{% endfor %}
+        <option value="unsorted">Not sure - sort later</option>
+      </select>
+    </label>
+    <label>For {{ person_select(people, none) }}</label>
+    <input type="file" name="files" multiple required accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,image/*,application/pdf">
+    <button class="primary">Upload</button>
+    <small class="muted">PDF, JPG, PNG or TIFF. Files go to the NAS folder for the category and are read automatically.</small>
+  </form>
+</section>
+
+<div class="tiles">
+  <a class="tile" href="/documents?year={{ year }}"><b>{{ sm.docs_total }}</b><span>documents</span></a>
+  <a class="tile {{ 'hot' if pending }}" href="/documents?year={{ year }}&amp;status=pending"><b>{{ pending }}</b><span>being read</span></a>
+  <a class="tile {{ 'hot' if sm.open_items }}" href="/review?year={{ year }}"><b>{{ sm.open_items }}</b><span>open items</span></a>
+  <a class="tile" href="/review?year={{ year }}"><b>{{ sm.auto_items }}</b><span>auto-read, not approved</span></a>
+</div>
+
+<section class="card">
+  <h2>Work days</h2>
+  {% for ps in sm.people %}
+  <div class="person">
+    <strong>{{ ps.person.name }}</strong>
+    <span class="muted">Steuerklasse {{ ps.person.steuerklasse }}{% if ps.person.faktor %}, Faktor {{ ps.person.faktor }}{% endif %}</span>
+    <div class="meter"><div style="width: {{ [100, ((ps.home_days / ps.home_max_days) * 100)|round|int]|min }}%"></div></div>
+    <div class="muted">Home office {{ ps.home_days }} / {{ ps.home_max_days }} days &middot; Office {{ ps.office_days }} &middot; Away {{ ps.away_days }}</div>
+    {% if year == today.year %}
+    <form method="post" action="/workdays/set" class="inline">
+      <input type="hidden" name="person_id" value="{{ ps.person.id }}">
+      <input type="hidden" name="next" value="/?year={{ year }}">
+      <span class="muted">Today:</span>
+      {% for k, lbl in [('office', 'Office'), ('home', 'Home'), ('away', 'Away')] %}
+      <button name="kind" value="{{ k }}" class="chip {{ 'on' if today_kinds.get(ps.person.id) == k }}">{{ lbl }}</button>
+      {% endfor %}
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+  <a href="/workdays?year={{ year }}">Edit the calendar</a>
+</section>
+
+<section class="card">
+  <h2>Totals by section</h2>
+  <table>
+    {% for sec in sm.sections %}
+    <tr class="sec"><th colspan="2">{{ sec.label }}</th></tr>
+    {% for ln in sec.lines %}
+    <tr>
+      <td>{{ ln.label }}{% if ln.open_count %} <span class="badge needs_review">{{ ln.open_count }} open</span>{% endif %}</td>
+      <td class="num">{{ ln.counted_cents|eur }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total"><td>Total</td><td class="num">{{ sec.total_cents|eur }}</td></tr>
+    {% endfor %}
+  </table>
+  <p><a href="/sections?year={{ year }}">Details per section</a> &middot; <a href="/export?year={{ year }}">Export CSV</a></p>
+</section>
+
+{% if sm.empty_categories %}
+<p class="muted">No documents yet for: {% for k in sm.empty_categories %}{{ categories[k].label }}{{ ', ' if not loop.last }}{% endfor %}.</p>
+{% endif %}
+
+<section class="card">
+  <h2>Latest uploads</h2>
+  {% if recent %}
+  <table>
+    {% for d in recent %}
+    <tr>
+      <td><a href="/documents/{{ d.id }}?year={{ year }}">{{ d.vendor or d.original_name }}</a><br><small class="muted">{{ catlabels.get(d.category, d.category) }}</small></td>
+      <td class="num">{{ d.amount_cents|eur }}</td>
+      <td>{{ badge(d.status) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="muted">Nothing uploaded for {{ year }} yet.</p>{% endif %}
+</section>
+
+{% if pending %}
+<script>
+  // refresh while documents are being read, but never while a file is chosen in the upload form
+  setTimeout(function () {
+    var f = document.querySelector('input[type=file]');
+    if (!f || !f.files.length) location.reload();
+  }, 10000);
+</script>
+{% endif %}
+{% endblock %}

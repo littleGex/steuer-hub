@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block content %}
+<h1>Sections {{ year }}</h1>
+<p class="muted">Figures are what would be entered in Mein ELSTER. "Reviewed" counts only approved documents.</p>
+
+{% for w in sm.warnings %}<div class="note warn">{{ w }}</div>{% endfor %}
+{% if sm.hint %}<div class="note">{{ sm.hint }}</div>{% endif %}
+
+<section class="card">
+  <h2>People (Anlage N)</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Person</th><th>Klasse</th><th class="num">Home office</th><th class="num">Commute</th><th class="num">Documents</th><th class="num">Total</th><th class="num">Pauschbetrag</th></tr>
+    {% for ps in sm.people %}
+    <tr>
+      <td>{{ ps.person.name }}</td>
+      <td>{{ ps.person.steuerklasse }}{% if ps.person.faktor %} <small>F {{ ps.person.faktor }}</small>{% endif %}</td>
+      <td class="num">{{ ps.home_cents|eur }}<br><small class="muted">{{ ps.home_counted_days }} d</small></td>
+      <td class="num">{{ ps.commute_cents|eur }}<br><small class="muted">{{ ps.office_days }} d &times; {{ ps.person.commute_km }} km</small></td>
+      <td class="num">{{ ps.doc_cents|eur }}</td>
+      <td class="num"><b>{{ ps.werbungskosten_cents|eur }}</b></td>
+      <td class="num">{{ ps.pauschbetrag_cents|eur }}<br><small class="{{ 'ok-text' if ps.above_pauschbetrag else 'muted' }}">{{ 'above: itemising pays off' if ps.above_pauschbetrag else 'below' }}</small></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+  <small class="muted">Rules from {{ sm.rules._source_year }}: {{ sm.rules.homeoffice.rate_eur_per_day }} &euro;/day home office (max {{ sm.rules.homeoffice.max_days }} days). Edit config/tax_rules.yml to change.</small>
+</section>
+
+{% for sec in sm.sections %}
+<section class="card">
+  <h2>{{ sec.label }}</h2>
+  <p class="muted">{{ sec.hint }}</p>
+  <table>
+    <tr><th>Line</th><th class="num">Items</th><th class="num">Counted</th><th class="num">Reviewed</th></tr>
+    {% for ln in sec.lines %}
+    <tr>
+      <td>{{ ln.label }}{% if ln.open_count %} <span class="badge needs_review">{{ ln.open_count }} open</span>{% endif %}
+        {% if ln.note %}<br><small class="muted">{{ ln.note }}</small>{% endif %}
+        {% if ln.capped and not ln.virtual %}<br><small class="warn-text">capped</small>{% endif %}</td>
+      <td class="num">{{ ln.count }}</td>
+      <td class="num">{{ ln.counted_cents|eur }}{% if ln.gross_cents != ln.counted_cents and not ln.virtual %}<br><small class="muted">of {{ ln.gross_cents|eur }}</small>{% endif %}</td>
+      <td class="num">{{ ln.approved_cents|eur }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total"><td colspan="2">Total</td><td class="num">{{ sec.total_cents|eur }}</td><td class="num">{{ sec.approved_cents|eur }}</td></tr>
+  </table>
+  {% for ln in sec.lines if not ln.virtual and by_cat.get(ln.key) %}
+  <details>
+    <summary>{{ ln.label }}: {{ by_cat[ln.key]|length }} document(s)</summary>
+    <table class="small">
+      {% for d in by_cat[ln.key] %}
+      <tr>
+        <td>{{ d.doc_date|dmy }}</td>
+        <td><a href="/documents/{{ d.id }}?year={{ year }}">{{ d.vendor or d.original_name }}</a>{% if d.person_id %}<br><small class="muted">{{ pnames.get(d.person_id) }}</small>{% endif %}</td>
+        <td class="num">{{ d.amount_cents|eur }}</td>
+        <td>{{ badge(d.status) }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </details>
+  {% endfor %}
+</section>
+{% endfor %}
+<p><a class="button" href="/export?year={{ year }}">Export CSV</a></p>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Export {{ year }}</h1>
+{% if sm.signed_off_at and not sm.changed_since_signoff %}
+<div class="note ok">Signed off on {{ sm.signed_off_at.strftime('%d.%m.%Y') }}. Files are marked SIGNED-OFF.</div>
+{% else %}
+<div class="note warn">{{ 'Figures changed since sign-off.' if sm.signed_off_at else 'Not signed off yet.' }} Files are marked DRAFT.{% if sm.open_items %} {{ sm.open_items }} item(s) are still open.{% endif %}</div>
+{% endif %}
+
+<section class="card stack">
+  <h2>Summary per section</h2>
+  <p class="muted">One row per line with totals, plus a block per person. Use this to fill in Mein ELSTER.</p>
+  <div class="row">
+    <a class="button primary" href="/export/summary.csv?year={{ year }}">Download (Excel, 1.234,56)</a>
+    <a class="button" href="/export/summary.csv?year={{ year }}&amp;decimal=dot">Decimal point</a>
+  </div>
+</section>
+<section class="card stack">
+  <h2>All documents</h2>
+  <p class="muted">Every document with date, vendor, amount, status, stored path and SHA-256, as an audit list.</p>
+  <div class="row">
+    <a class="button primary" href="/export/documents.csv?year={{ year }}">Download (Excel, 1.234,56)</a>
+    <a class="button" href="/export/documents.csv?year={{ year }}&amp;decimal=dot">Decimal point</a>
+  </div>
+</section>
+<p class="muted">Keep the original receipts for as long as the Finanzamt may ask for them. They live on the NAS under {{ year }}/&lt;category&gt;/.</p>
+{% endblock %}

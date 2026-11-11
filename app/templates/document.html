@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, person_select, category_select %}
+{% block content %}
+<h1>{{ doc.vendor or doc.original_name }} {{ badge(doc.status) }}</h1>
+<p><a href="/documents/{{ doc.id }}/file" target="_blank" rel="noopener">Open original</a>
+  <span class="muted">&middot; {{ doc.original_name }} &middot; uploaded {{ doc.uploaded_at.strftime('%d.%m.%Y %H:%M') }}</span></p>
+
+{% for f in doc.flag_list %}<div class="note warn">{{ f }}</div>{% endfor %}
+{% if doc.confidence is not none %}<p class="muted">Read confidence: {{ (doc.confidence * 100)|round|int }} %. Always check the amount against the original.</p>{% endif %}
+
+<form method="post" action="/documents/{{ doc.id }}" class="card stack">
+  <input type="hidden" name="next" value="{{ next_url }}">
+  <label>Category {{ category_select(categories, doc.category) }}</label>
+  <label>Person {{ person_select(people, doc.person_id) }}</label>
+  <label>Date <input type="date" name="doc_date" value="{{ doc.doc_date.isoformat() if doc.doc_date }}"></label>
+  <label>Amount (EUR) <input type="text" name="amount" inputmode="decimal" value="{{ cents_text }}" placeholder="119,00"></label>
+  <label>Vendor <input type="text" name="vendor" maxlength="120" value="{{ doc.vendor or '' }}"></label>
+  <label>Note <textarea name="note" rows="2">{{ doc.note }}</textarea></label>
+  <label class="check"><input type="checkbox" name="excluded" value="1" {{ 'checked' if doc.excluded }}> Exclude from totals</label>
+  <div class="row">
+    <button name="action" value="approve" class="primary">Save &amp; approve</button>
+    <button name="action" value="save">Save</button>
+  </div>
+</form>
+
+<div class="row">
+  <form method="post" action="/documents/{{ doc.id }}/reprocess"><button>Read again</button></form>
+  <form method="post" action="/documents/{{ doc.id }}/delete" onsubmit="return confirm('Remove this document? The file is moved to the _trash folder on the NAS.')"><button class="danger">Remove</button></form>
+</div>
+
+{% if doc.text_excerpt %}
+<details><summary>Text found in the document</summary><pre>{{ doc.text_excerpt }}</pre></details>
+{% endif %}
+<p class="muted"><small>Stored at {{ doc.stored_path }}<br>SHA-256 {{ doc.sha256 }}</small></p>
+{% endblock %}

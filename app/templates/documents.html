@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge %}
+{% block content %}
+<h1>Documents {{ year }}</h1>
+<form method="get" class="filters">
+  <input type="hidden" name="year" value="{{ year }}">
+  <select name="category">
+    <option value="">All categories</option>
+    {% for k, c in categories.items() %}<option value="{{ k }}" {{ 'selected' if f_category == k }}>{{ c.label }}</option>{% endfor %}
+    <option value="unsorted" {{ 'selected' if f_category == 'unsorted' }}>Unsorted</option>
+  </select>
+  <select name="status">
+    <option value="">All statuses</option>
+    {% for k, lbl in STATUS_LABEL.items() %}<option value="{{ k }}" {{ 'selected' if f_status == k }}>{{ lbl }}</option>{% endfor %}
+  </select>
+  <select name="person">
+    <option value="">Everyone</option>
+    {% for p in people %}<option value="{{ p.id }}" {{ 'selected' if f_person == p.id|string }}>{{ p.name }}</option>{% endfor %}
+  </select>
+  <button>Filter</button>
+</form>
+
+{% if docs %}
+<div class="scroll">
+<table>
+  <tr><th>Date</th><th>Vendor</th><th>Category</th><th class="num">Amount</th><th>Status</th></tr>
+  {% for d in docs %}
+  <tr>
+    <td>{{ d.doc_date|dmy }}</td>
+    <td><a href="/documents/{{ d.id }}?year={{ year }}">{{ d.vendor or d.original_name }}</a>
+      {% if d.person_id %}<br><small class="muted">{{ pnames.get(d.person_id) }}</small>{% endif %}
+      {% if d.flag_list %}<br><small class="warn-text">{{ d.flag_list[0] }}</small>{% endif %}</td>
+    <td>{{ catlabels.get(d.category, d.category) }}</td>
+    <td class="num">{{ d.amount_cents|eur }}</td>
+    <td>{{ badge(d.status) }}{% if d.excluded %} <span class="badge">excluded</span>{% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% else %}<p class="muted">No documents match.</p>{% endif %}
+{% endblock %}
