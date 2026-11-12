@@ -83,7 +83,7 @@ def test_nas_down_retries_scan_later_without_hammering(env, monkeypatch):
 
 def test_status_check_is_cached(env, monkeypatch):
     calls = _count_nas_checks(monkeypatch)
-    monkeypatch.setattr(storage, "_status_cache", None)
+    monkeypatch.setattr(storage, "_status_cache", {})
     for _ in range(10):
         assert storage.nas_status_cached()[0] is True
     assert len(calls) == 1
@@ -109,3 +109,15 @@ def test_backup_never_opens_sqlite_on_the_nas(env, monkeypatch):
     monkeypatch.setattr(sqlite3, "connect", real_connect)
     assert real_connect(dest).execute("pragma integrity_check").fetchone()[0] == "ok"
     assert not list(get_settings().backup_dir.glob("*.tmp")) and not list(get_settings().data_dir.glob("*.bak-tmp"))
+
+
+def test_healthz_reuses_its_nas_check(env, monkeypatch):
+    """Docker calls /healthz every minute; it must not touch the NAS each time, or the NAS disks never sleep."""
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+    calls = _count_nas_checks(monkeypatch)
+    with TestClient(app) as c:
+        for _ in range(5):
+            assert c.get("/healthz").status_code == 200
+    assert len(calls) == 1

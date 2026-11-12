@@ -39,16 +39,17 @@ def nas_status() -> tuple[bool, str]:
     return True, "ok"
 
 
-_status_cache: tuple[float, tuple[bool, str]] | None = None
+_status_cache: dict[str, tuple[float, tuple[bool, str]]] = {}
 
 
 def nas_status_cached(max_age: float = 60.0) -> tuple[bool, str]:
-    """For frequent polling (dashboard status): reuse a recent NAS check instead of touching the share each time."""
-    global _status_cache
-    now = time.monotonic()
-    if _status_cache is None or now - _status_cache[0] > max_age:
-        _status_cache = (now, nas_status())
-    return _status_cache[1]
+    """For frequent polling (dashboard status, Docker health check): reuse a recent NAS check instead of touching
+    the share each time. Keyed by NAS root, so a different root never sees another root's result."""
+    key, now = str(root()), time.monotonic()
+    hit = _status_cache.get(key)
+    if hit is None or now - hit[0] > max_age:
+        hit = _status_cache[key] = (now, nas_status())
+    return hit[1]
 
 
 def init_marker(has_docs: bool) -> None:

@@ -39,7 +39,8 @@ nas.local:/volume1/steuer  /mnt/nas/steuer  nfs  defaults,_netdev,nofail  0 0
 
 **Marker file.** An unmounted share often shows up as an empty folder on the Pi's own disk, and Docker will happily
 bind-mount that. The app therefore writes `.steuer-hub-marker` into the NAS root on first run and refuses uploads and
-OCR work while it is missing (red banner, `/healthz` returns 503). If you ever restore onto a fresh NAS, `touch`
+OCR work while it is missing (red banner, `/healthz` returns 503 within 15 minutes; it reuses its NAS check so the
+Docker health check does not keep the NAS awake). If you ever restore onto a fresh NAS, `touch`
 that file once.
 
 ```

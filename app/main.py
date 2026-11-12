@@ -47,7 +47,9 @@ async def same_origin_only(request: Request, call_next):
 
 @app.get("/healthz", include_in_schema=False)
 def healthz():
-    ok, msg = storage.nas_status()
+    # Docker calls this every minute. Reusing the NAS check for 15 min (the inbox-scan rhythm) lets the NAS disks
+    # spin down; pages and uploads still check the NAS on every request.
+    ok, msg = storage.nas_status_cached(max_age=900)
     return PlainTextResponse("ok" if ok else f"nas: {msg}", status_code=200 if ok else 503)
 
 
