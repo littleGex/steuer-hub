@@ -32,6 +32,7 @@ class Settings:
     auth_user: str | None
     auth_password: str | None
     poll_seconds: int
+    inbox_scan_seconds: int
     ocr_lang: str
     confidence_threshold: float
     backup_hour: int
@@ -63,6 +64,7 @@ def get_settings() -> Settings:
         auth_user=os.environ.get("STEUER_USER") or None,
         auth_password=os.environ.get("STEUER_PASSWORD") or None,
         poll_seconds=_int("STEUER_POLL_SECONDS", 5),
+        inbox_scan_seconds=_int("STEUER_INBOX_SCAN_SECONDS", 900),
         ocr_lang=os.environ.get("STEUER_OCR_LANG", "deu+eng"),
         confidence_threshold=_float("STEUER_CONFIDENCE", 0.7),
         backup_hour=_int("STEUER_BACKUP_HOUR", 3),

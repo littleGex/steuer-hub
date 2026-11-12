@@ -8,7 +8,8 @@ from __future__ import annotations
 import logging
 import sqlite3
 import time
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 
 from sqlalchemy import select, update
@@ -124,6 +125,47 @@ def backup_db(now: datetime | None = None) -> Path | None:
     return dest
 
 
+def has_pending() -> bool:
+    """Local DB only: no NAS access."""
+    with session_scope() as s:
+        return s.scalar(select(Document.id).where(Document.status == "pending").limit(1)) is not None
+
+
+@dataclass
+class Schedule:
+    next_scan: float = 0.0              # monotonic time of the next inbox scan
+    last_backup_day: date | None = None
+    nas_ok: bool | None = None
+
+
+def tick(sched: Schedule, mono: float | None = None, now: datetime | None = None) -> None:
+    """One worker cycle. The NAS is touched only when there is work: a pending upload, an inbox scan that is due,
+    or the daily backup. Idle cycles read the local DB only, so the NAS disks can spin down."""
+    st = get_settings()
+    mono = time.monotonic() if mono is None else mono
+    now = now or datetime.now()
+    scan_due = mono >= sched.next_scan
+    pending = has_pending()
+    backup_due = now.hour >= st.backup_hour and sched.last_backup_day != now.date()
+    if not (scan_due or pending or backup_due):
+        return
+    ok, msg = storage.nas_status()
+    if ok != sched.nas_ok:
+        (log.info if ok else log.warning)("NAS %s", "ready" if ok else f"not ready: {msg}")
+        sched.nas_ok = ok
+    if not ok:
+        sched.next_scan = mono + min(60, st.inbox_scan_seconds)  # retry the scan later, without hammering
+        return
+    if scan_due:
+        scan_inbox()
+        sched.next_scan = mono + st.inbox_scan_seconds
+    if pending:
+        process_pending()
+    if backup_due:
+        backup_db(now)
+        sched.last_backup_day = now.date()
+
+
 def run_once() -> tuple[int, int]:
     ok, msg = storage.nas_status()
     if not ok:
@@ -137,13 +179,13 @@ def main() -> None:
     st = get_settings()
     configure()
     recover_stale()
-    log.info("worker started, polling every %ss", st.poll_seconds)
+    log.info("worker started: uploads checked every %ss, inbox scanned every %ss",
+             st.poll_seconds, st.inbox_scan_seconds)
+    sched = Schedule()
     while True:
         try:
             st.heartbeat_path.write_text(datetime.now().isoformat(timespec="seconds"), encoding="utf-8")
-            run_once()
-            if datetime.now().hour >= st.backup_hour:
-                backup_db()
+            tick(sched)
         except Exception:  # noqa: BLE001
             log.exception("worker cycle failed")
         time.sleep(st.poll_seconds)

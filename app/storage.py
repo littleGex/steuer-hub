@@ -5,6 +5,7 @@ import hashlib
 import os
 import re
 import shutil
+import time
 import uuid
 from datetime import date
 from pathlib import Path
@@ -36,6 +37,18 @@ def nas_status() -> tuple[bool, str]:
         return False, ("NAS marker file missing - is the share mounted? "
                        f"(If this is a fresh install, create an empty file named {MARKER} in the NAS root.)")
     return True, "ok"
+
+
+_status_cache: tuple[float, tuple[bool, str]] | None = None
+
+
+def nas_status_cached(max_age: float = 60.0) -> tuple[bool, str]:
+    """For frequent polling (dashboard status): reuse a recent NAS check instead of touching the share each time."""
+    global _status_cache
+    now = time.monotonic()
+    if _status_cache is None or now - _status_cache[0] > max_age:
+        _status_cache = (now, nas_status())
+    return _status_cache[1]
 
 
 def init_marker(has_docs: bool) -> None:

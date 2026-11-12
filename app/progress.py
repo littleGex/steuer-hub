@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from calendar import month_name, monthrange
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -116,11 +117,21 @@ class Progress:
         return max((s.current for s in self.streaks), default=0)
 
 
-def _backup_count() -> int:
+_backup_cache: dict[str, tuple[float, int]] = {}
+
+
+def _backup_count(max_age: float = 3600.0) -> int:
+    """Lists the NAS backup folder at most once an hour, so polling never keeps the NAS awake."""
+    d = get_settings().backup_dir
+    hit = _backup_cache.get(str(d))
+    if hit and time.monotonic() - hit[0] < max_age:
+        return hit[1]
     try:
-        return len(list(get_settings().backup_dir.glob("steuer-*.db")))
+        n = len(list(d.glob("steuer-*.db")))
     except OSError:
-        return 0
+        n = 0
+    _backup_cache[str(d)] = (time.monotonic(), n)
+    return n
 
 
 def compute_progress(s: Session, year: int, sm, today: date | None = None) -> Progress:

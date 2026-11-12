@@ -36,6 +36,12 @@ def _month_rows(s: Session, person_id: int, year: int, month: int) -> dict[date,
         select(WorkDay).where(WorkDay.person_id == person_id, WorkDay.day >= days[0], WorkDay.day <= days[-1]))}
 
 
+def _free_past(rows: dict[date, str], year: int, month: int, today: date | None = None) -> list[date]:
+    """Free weekdays up to and including today: the ones "mark the rest as away" fills."""
+    today = today or date.today()
+    return [d for d in _weekdays(year, month) if d not in rows and d <= today]
+
+
 def month_summary(s: Session, person_id: int, year: int, month: int) -> dict:
     rows = _month_rows(s, person_id, year, month)
     counts = Counter(rows.values())
@@ -44,6 +50,7 @@ def month_summary(s: Session, person_id: int, year: int, month: int) -> dict:
         "month": month, "name": date(year, month, 1).strftime("%B"), "short": date(year, month, 1).strftime("%b"),
         "office": counts.get("office", 0), "home": counts.get("home", 0), "away": counts.get("away", 0),
         "weekdays": len(weekdays), "free": sum(1 for d in weekdays if d not in rows),
+        "free_past": len(_free_past(rows, year, month)),
     }
 
 
@@ -105,7 +112,8 @@ def page(request: Request, s: Session = Depends(get_db)):
 
 @router.post("/workdays/month")
 def set_month(request: Request, person_id: int = Form(...), year: int = Form(...), month: int = Form(...),
-              office: str = Form(""), home: str = Form(""), next_url: str = Form("/", alias="next"),
+              office: str = Form(""), home: str = Form(""), away_rest: str = Form(""),
+              next_url: str = Form("/", alias="next"),
               s: Session = Depends(get_db)):
     """Set office/home totals for one month. Answers JSON for the month cards' script, else redirects."""
     wants_json = "application/json" in request.headers.get("accept", "")
@@ -137,6 +145,11 @@ def set_month(request: Request, person_id: int = Form(...), year: int = Form(...
         if (err := set_month_count(s, person_id, year, month, kind, targets[kind])):
             s.rollback()
             return reply(err)
+    if away_rest == "1":
+        # holidays, leave, sick days: completes the month for the progress stamps without touching future days
+        for d in _free_past(_month_rows(s, person_id, year, month), year, month):
+            s.add(WorkDay(person_id=person_id, day=d, kind="away"))
+        s.commit()
     return reply(None)
 
 

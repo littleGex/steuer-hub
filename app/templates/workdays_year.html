@@ -57,6 +57,8 @@ lowering a count clears the latest ones. Open a month to set individual days, we
       <span data-meta>{{ m.weekdays }} weekdays · <span data-free>{{ m.free }}</span> free{% if m.away %} · <span data-away>{{ m.away }}</span> away{% else %}<span data-away hidden></span>{% endif %}</span>
       <span class="status" data-status aria-live="polite"></span>
       <noscript><button class="small">Save</button></noscript>
+      <button class="small" name="away_rest" value="1" data-away-rest {{ 'hidden' if not m.free_past }}
+              title="Holidays, leave or sick days: marks the free weekdays up to today as away">Rest away (<span data-free-past>{{ m.free_past }}</span>)</button>
     </div>
   </form>
   {% endfor %}

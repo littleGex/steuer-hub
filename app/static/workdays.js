@@ -42,6 +42,11 @@
       a.hidden = true;
       meta.appendChild(a);
     }
+    var rest = form.querySelector("[data-away-rest]");
+    if (rest) {
+      rest.hidden = !m.free_past;
+      rest.querySelector("[data-free-past]").textContent = m.free_past;
+    }
   }
 
   function status(form, text, kind) {
@@ -50,8 +55,9 @@
     el.className = "status" + (kind ? " " + kind : "");
   }
 
-  function save(form) {
+  function save(form, extra) {
     var data = new FormData(form);
+    if (extra) Object.keys(extra).forEach(function (k) { data.append(k, extra[k]); });
     form.classList.add("saving");
     status(form, "Saving…");
     fetch(form.action, {
@@ -122,7 +128,8 @@
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       clearTimeout(timer);
-      save(form);
+      var b = e.submitter;
+      save(form, b && b.name === "away_rest" ? { away_rest: "1" } : null);
     });
 
     form.addEventListener("keydown", function (e) {

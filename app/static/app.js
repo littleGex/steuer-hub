@@ -115,7 +115,7 @@
     var shown = {};
     var latest = initial;
     var known = {};           // doc id -> station, as last seen
-    var curX = 0, idleTimer = null, queue = Promise.resolve(), lastSig = null, inflight = false;
+    var curX = 0, curStation = "dropoff", idleTimer = null, queue = Promise.resolve(), lastSig = null, inflight = false;
 
     function setMsg(t) { if (msg) msg.textContent = t; }
 
@@ -169,6 +169,9 @@
       });
     }
 
+    // walk to a station by name; remembering it lets a resize (e.g. rotating the phone) put the worker back in place
+    function goTo(k) { curStation = k; return walkTo(stationX(k)); }
+
     function stampFiled() {
       var s = stEls.filed && stEls.filed.querySelector(".stamp-hit");
       if (!s) return;
@@ -185,7 +188,7 @@
       var ti = STATIONS.indexOf(to);
       wake();
       setMsg((job.label || "A document") + (from === null ? " arrived." : " moves on."));
-      var chain = walkTo(stationX(STATIONS[fi]));
+      var chain = goTo(STATIONS[fi]);
       if (from === null) {
         chain = chain.then(function () { shown.dropoff++; render("dropoff"); return sleep(450); });
       }
@@ -197,7 +200,7 @@
       for (var i = fi + 1; i <= ti; i++) {
         (function (idx) {
           chain = chain.then(function () {
-            return walkTo(stationX(STATIONS[idx])).then(function () {
+            return goTo(STATIONS[idx]).then(function () {
               if (STATIONS[idx] === "reading" && idx < ti) { return sleep(700); }
             });
           });
@@ -238,34 +241,21 @@
 
     function applyEarned(p) { checkEarned({ year: p.year, earned: p.earned }); }
 
-    /* initial state: documents that appeared since this browser last looked animate in */
-    var jobs0 = [];
-    var base = {};
-    STATIONS.forEach(function (k) { base[k] = initial.stations[k]; });
-    if (isFinite(storedMax)) {
-      initial.docs.forEach(function (d) { if (d.id > storedMax) base[d.station]--; });
-      jobs0 = diff(initial.docs, true);
-      var skipped = initial.docs.filter(function (d) { return d.id > storedMax; }).length - jobs0.length;
-      if (skipped > 0) { jobs0.forEach(function () {}); }
-    } else {
-      initial.docs.forEach(function (d) { known[d.id] = d.station; });
-    }
+    /* Initial state. Documents that arrived since this browser last looked animate in (at most four);
+       everything else is shown as already in place. On a first visit nothing animates. */
+    var jobs0 = isFinite(storedMax) ? diff(initial.docs, true) : [];
+    if (!isFinite(storedMax)) initial.docs.forEach(function (d) { known[d.id] = d.station; });
     store(maxKey, String(Math.max(storedMax || 0, maxId(initial.docs))));
-    // anything beyond the animated jobs is simply shown as already there
-    var animated = {};
-    jobs0.forEach(function (j) { animated[j.to] = (animated[j.to] || 0) + 1; });
-    STATIONS.forEach(function (k) { shown[k] = base[k]; });
-    initial.docs.forEach(function (d) {
-      if (isFinite(storedMax) && d.id > storedMax && !jobs0.some(function (j) { return j.label === d.label && j.to === d.station; })) shown[d.station]++;
-    });
+    STATIONS.forEach(function (k) { shown[k] = initial.stations[k]; });
+    jobs0.forEach(function (j) { shown[j.to]--; });   // these are added when the worker delivers them
     lastSig = initial.sig;
     render();
-    place(stationX("dropoff"));
+    place(stationX(curStation));
     if (initial.worker !== "ok") worker.classList.add("offline");
     wake();
     if (jobs0.length) enqueue(jobs0);
 
-    window.addEventListener("resize", function () { place(stationX(STATIONS[0]) > 0 ? curX : 0); });
+    window.addEventListener("resize", function () { place(stationX(curStation)); });
 
     function poll() {
       if (inflight || document.visibilityState !== "visible") return;

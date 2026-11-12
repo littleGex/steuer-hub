@@ -275,3 +275,25 @@ def test_workdays_month_cross_origin_blocked(client):
     r = client.post("/workdays/month", data={"person_id": person_id(), "year": 2026, "month": 3, "home": "5"},
                     headers={"Origin": "http://evil.example", "Accept": "application/json"}, follow_redirects=False)
     assert r.status_code == 403
+
+
+def test_workdays_rest_away_fills_only_past_free_weekdays(client, monkeypatch):
+    from datetime import date
+
+    from app.routes import workdays as wd
+    pid = person_id()
+    json = {"Accept": "application/json"}
+    client.post("/workdays/month", data={"person_id": pid, "year": 2026, "month": 3, "office": "5", "home": "5"},
+                headers=json)
+
+    real = wd._free_past
+    monkeypatch.setattr(wd, "_free_past", lambda rows, y, m, today=None: real(rows, y, m, today=date(2026, 3, 25)))
+    r = client.post("/workdays/month", data={"person_id": pid, "year": 2026, "month": 3, "away_rest": "1"},
+                    headers=json)
+    m = r.json()["month"]
+    assert r.json()["ok"] and m["office"] == 5 and m["home"] == 5
+    rows = _march(pid)
+    away = sorted(d for d, k in rows.items() if k == "away")
+    # 10 days fill Mar 2-13; the free weekdays Mar 16-25 become away, Mar 26/27/30/31 (the "future") stay free
+    assert len(away) == 8 and away[0] == date(2026, 3, 16) and away[-1] == date(2026, 3, 25)
+    assert m["away"] == 8 and m["free"] == 4 and m["free_past"] == 0

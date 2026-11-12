@@ -21,5 +21,5 @@ def status(request: Request, s: Session = Depends(get_db)):
     year = get_year(request)
     sm = compute_year(s, year)
     prog = compute_progress(s, year, sm)
-    payload = status_payload(s, year, sm, prog, worker_state(), storage.nas_status()[0])
+    payload = status_payload(s, year, sm, prog, worker_state(), storage.nas_status_cached()[0])
     return JSONResponse(payload, headers={"Cache-Control": "no-store"})
