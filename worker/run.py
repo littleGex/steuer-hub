@@ -6,6 +6,7 @@ Polling (not inotify) is deliberate: file-change events are unreliable on NFS/SM
 from __future__ import annotations
 
 import logging
+import shutil
 import sqlite3
 import time
 from dataclasses import dataclass
@@ -101,7 +102,12 @@ def process_pending(limit: int = 25) -> int:
 
 
 def backup_db(now: datetime | None = None) -> Path | None:
-    """Daily copy of the SQLite DB to <NAS>/_backups using SQLite's online backup API."""
+    """Daily copy of the SQLite DB to <NAS>/_backups.
+
+    SQLite's file locking does not work over SMB/NFS, so the snapshot is taken on local disk with SQLite's online
+    backup API and only the finished file is copied to the NAS as plain bytes. (Opening the backup database directly
+    on the share made the backup retry forever and stalled the worker.)
+    """
     st = get_settings()
     ok, _ = storage.nas_status()
     if not ok or not st.db_path.exists():
@@ -111,14 +117,20 @@ def backup_db(now: datetime | None = None) -> Path | None:
     dest = st.backup_dir / f"steuer-{now:%Y%m%d}.db"
     if dest.exists():
         return None
-    tmp = dest.with_suffix(".tmp")
-    src, dst = sqlite3.connect(st.db_path), sqlite3.connect(tmp)
+    local = st.data_dir / f"steuer-{now:%Y%m%d}.bak-tmp"
+    nas_tmp = dest.with_suffix(".tmp")
     try:
-        src.backup(dst)
+        src, dst = sqlite3.connect(st.db_path), sqlite3.connect(local)
+        try:
+            src.backup(dst)
+        finally:
+            dst.close()
+            src.close()
+        shutil.copyfile(local, nas_tmp)
+        nas_tmp.replace(dest)
     finally:
-        dst.close()
-        src.close()
-    tmp.replace(dest)
+        local.unlink(missing_ok=True)
+        nas_tmp.unlink(missing_ok=True)
     for old in sorted(st.backup_dir.glob("steuer-*.db"))[: -st.backup_keep]:
         old.unlink(missing_ok=True)
     log.info("backup written: %s", dest.name)

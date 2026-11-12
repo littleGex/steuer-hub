@@ -87,3 +87,25 @@ def test_status_check_is_cached(env, monkeypatch):
     for _ in range(10):
         assert storage.nas_status_cached()[0] is True
     assert len(calls) == 1
+
+
+def test_backup_never_opens_sqlite_on_the_nas(env, monkeypatch):
+    """SQLite locking does not work over SMB/NFS: a backup written there hung the worker forever on a real NAS.
+    The copy must be made on local disk and only the finished file copied to the NAS."""
+    import sqlite3
+
+    from app.settings import get_settings
+    nas = str(get_settings().nas_root.resolve())
+    real_connect = sqlite3.connect
+
+    def guarded(path, *a, **kw):
+        assert not str(path).startswith(nas) and not str(__import__("pathlib").Path(path).resolve()).startswith(nas), \
+            f"sqlite opened a file on the NAS: {path}"
+        return real_connect(path, *a, **kw)
+
+    monkeypatch.setattr(sqlite3, "connect", guarded)
+    dest = worker_run.backup_db(datetime(2026, 3, 10, 4, 0))
+    assert dest is not None and dest.is_file() and dest.parent == get_settings().backup_dir
+    monkeypatch.setattr(sqlite3, "connect", real_connect)
+    assert real_connect(dest).execute("pragma integrity_check").fetchone()[0] == "ok"
+    assert not list(get_settings().backup_dir.glob("*.tmp")) and not list(get_settings().data_dir.glob("*.bak-tmp"))
